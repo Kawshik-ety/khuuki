@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday! ✨</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* -----------------------------------------------------------------
+       1. Core Design System & CSS Variables
+    ----------------------------------------------------------------- */
+    :root {
+      --bg-dark: #0a0512;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-purple: #a855f7;
+      --accent-pink: #ec4899;
+      --accent-cyan: #06b6d4;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', sans-serif;
+      --font-serif: 'Playfair Display', serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Ambient Dynamic Mesh Background */
+    .bg-gradient-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      background: 
+        radial-gradient(circle at 15% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 60%);
+      filter: blur(40px);
+      animation: ambientPulse 12s infinite alternate ease-in-out;
+    }
+
+    @keyframes ambientPulse {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.1); }
+    }
+
+    /* Floating Canvas background */
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Main Container */
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      padding: 24px;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Glassmorphic Card */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      text-align: center;
+      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Step System */
+    .step-content {
+      display: none;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .step-content.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Typography Styles */
+    h1, h2 {
+      font-family: var(--font-serif);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent-pink) 50%, var(--accent-purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Modern Buttons */
+    .btn {
+      background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+      color: white;
+      border: none;
+      padding: 16px 36px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 15px 30px rgba(236, 72, 153, 0.5);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    /* -----------------------------------------------------------------
+       2. Specific Step Components
+    ----------------------------------------------------------------- */
+    /* Step 1: Countdown & Intro */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      color: var(--accent-purple);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    /* Interactive Countdown Pill */
+    .countdown-timer {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .time-block {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--card-border);
+      padding: 12px;
+      border-radius: 14px;
+      min-width: 65px;
+    }
+
+    .time-block span {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .time-block label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Step 2: Virtual Cake & Blow Out Candles */
+    .cake-container {
+      position: relative;
+      margin: 40px auto;
+      width: 140px;
+      height: 120px;
+      cursor: pointer;
+    }
+
+    .cake-base {
+      position: absolute;
+      bottom: 0;
+      width: 140px;
+      height: 70px;
+      background: linear-gradient(to right, #4a154b, #6b21a8);
+      border-radius: 16px 16px 8px 8px;
+      box-shadow: 0 8px 0 rgba(0,0,0,0.2);
+    }
+
+    .cake-top {
+      position: absolute;
+      bottom: 60px;
+      left: 10px;
+      width: 120px;
+      height: 40px;
+      background: linear-gradient(to right, #ec4899, #f472b6);
+      border-radius: 12px 12px 0 0;
+    }
+
+    .candle {
+      position: absolute;
+      bottom: 100px;
+      left: 62px;
+      width: 16px;
+      height: 35px;
+      background: repeating-linear-gradient(45deg, #fff, #fff 5px, var(--accent-cyan) 5px, var(--accent-cyan) 10px);
+      border-radius: 4px;
+    }
+
+    .flame {
+      position: absolute;
+      top: -18px;
+      left: 2px;
+      width: 12px;
+      height: 18px;
+      background: #ffb703;
+      border-radius: 50% 50% 20% 20%;
+      box-shadow: 0 0 12px #ffb703, 0 0 24px #fb8500;
+      animation: flicker 0.8s infinite alternate;
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .flame.extinguished {
+      opacity: 0;
+      transform: translateY(-10px) scale(0);
+    }
+
+    @keyframes flicker {
+      0% { transform: scale(1) rotate(-2deg); }
+      100% { transform: scale(1.15) rotate(2deg); }
+    }
+
+    /* Step 3: Polaroids / Memory Cards */
+    .memory-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .memory-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      text-align: left;
+      transition: transform 0.3s ease;
+    }
+
+    .memory-card:hover {
+      transform: translateX(6px);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .memory-icon {
+      background: rgba(168, 85, 247, 0.2);
+      color: var(--accent-purple);
+      padding: 12px;
+      border-radius: 12px;
+      display: flex;
+    }
+
+    /* Step 4: Final Letter Styling */
+    .letter-body {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: #e2e8f0;
+      text-align: left;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 24px;
+      border-radius: 16px;
+      border-left: 3px solid var(--accent-pink);
+      margin: 24px 0;
+      font-style: italic;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .glass-card {
+        padding: 30px 20px;
+      }
+      .time-block {
+        min-width: 50px;
+      }
+      .time-block span {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Dynamic Ambient Background Effects -->
+  <div class="bg-gradient-glow"></div>
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Main Website Container -->
+  <main class="app-container">
+    <div class="glass-card">
+      
+      <!-- STEP 1: INTRO & COUNTDOWN -->
+      <section id="step-1" class="step-content active">
+        <div class="badge">
+          <i data-lucide="sparkles" size="14"></i> Special Celebration
+        </div>
+        <h1 class="gradient-text">Happy Birthday!</h1>
+        <p>A little interactive experience crafted just for you, to celebrate your wonderful presence in this world.</p>
+
+        <div class="countdown-timer">
+          <div class="time-block"><span id="days">00</span><label>Days</label></div>
+          <div class="time-block"><span id="hours">00</span><label>Hours</label></div>
+          <div class="time-block"><span id="minutes">00</span><label>Mins</label></div>
+          <div class="time-block"><span id="seconds">00</span><label>Secs</label></div>
+        </div>
+
+        <button class="btn" onclick="nextStep(2)">
+          Start The Journey <i data-lucide="arrow-right"></i>
+        </button>
+      </section>
+
+      <!-- STEP 2: CAKE & BLOW OUT CANDLES -->
+      <section id="step-2" class="step-content">
+        <h2 class="gradient-text">Make a Wish</h2>
+        <p id="cake-instruction">Click or tap the candle flame to blow it out!</p>
+
+        <div class="cake-container" onclick="blowCandle()">
+          <div class="candle">
+            <div class="flame" id="flame"></div>
+          </div>
+          <div class="cake-top"></div>
+          <div class="cake-base"></div>
+        </div>
+
+        <button class="btn" id="btn-step-2" style="visibility: hidden;" onclick="nextStep(3)">
+          Continue <i data-lucide="arrow-right"></i>
+        </button>
+      </section>
+
+      <!-- STEP 3: MEMORIES & REASONS -->
+      <section id="step-3" class="step-content">
+        <h2 class="gradient-text">A Few Reasons...</h2>
+        <p>Why today is worth celebrating so extraordinarily:</p>
+
+        <div class="memory-stack">
+          <div class="memory-card">
+            <div class="memory-icon"><i data-lucide="sun"></i></div>
+            <div>
+              <h4 style="color: #fff;">Your Radiant Energy</h4>
+              <p style="font-size: 0.85rem; margin: 0;">You have a rare gift for lighting up every single room you walk into.</p>
+            </div>
+          </div>
+
+          <div class="memory-card">
+            <div class="memory-icon"><i data-lucide="heart"></i></div>
+            <div>
+              <h4 style="color: #fff;">Kind Heart</h4>
+              <p style="font-size: 0.85rem; margin: 0;">Your genuine empathy and warmth make life significantly sweeter.</p>
+            </div>
+          </div>
+
+          <div class="memory-card">
+            <div class="memory-icon"><i data-lucide="smile"></i></div>
+            <div>
+              <h4 style="color: #fff;">Endless Laughs</h4>
+              <p style="font-size: 0.85rem; margin: 0;">Thank you for all the unforgettable moments and shared laughter.</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" onclick="nextStep(4)">
+          Read My Note <i data-lucide="arrow-right"></i>
+        </button>
+      </section>
+
+      <!-- STEP 4: HEARTFELT LETTER -->
+      <section id="step-4" class="step-content">
+        <h2 class="gradient-text">To Someone Special</h2>
+        
+        <div class="letter-body">
+          "I wanted to create something unique for your birthday this year. Wishing you a year filled with grand adventures, endless warmth, unwavering happiness, and all the success you so deeply deserve."
+        </div>
+
+        <button class="btn" onclick="triggerGrandFinale()">
+          Celebrate! <i data-lucide="party-popper"></i>
+        </button>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // -----------------------------------------------------------------
+    // Navigation Between Steps
+    // -----------------------------------------------------------------
+    let currentStep = 1;
+
+    function nextStep(targetStep) {
+      const currentEl = document.getElementById(`step-${currentStep}`);
+      const targetEl = document.getElementById(`step-${targetStep}`);
+
+      currentEl.classList.remove('active');
+      
+      setTimeout(() => {
+        currentStep = targetStep;
+        targetEl.classList.add('active');
+      }, 300);
+    }
+
+    // -----------------------------------------------------------------
+    // Interactive Candle Blow Out
+    // -----------------------------------------------------------------
+    let candleBlown = false;
+    function blowCandle() {
+      if (candleBlown) return;
+      
+      const flame = document.getElementById('flame');
+      const instruction = document.getElementById('cake-instruction');
+      const nextBtn = document.getElementById('btn-step-2');
+
+      flame.classList.add('extinguished');
+      instruction.innerText = "✨ Your wish is sent into the universe!";
+      candleBlown = true;
+
+      // Small confetti explosion
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+
+      // Show Next Step Button
+      nextBtn.style.visibility = 'visible';
+    }
+
+    // -----------------------------------------------------------------
+    // Grand Finale Confetti
+    // -----------------------------------------------------------------
+    function triggerGrandFinale() {
+      const duration = 3 * 1000;
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+          colors: ['#a855f7', '#ec4899', '#06b6d4']
+        });
+        confetti({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+          colors: ['#a855f7', '#ec4899', '#06b6d4']
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      })();
+    }
+
+    // -----------------------------------------------------------------
+    // Interactive Countdown Timer
+    // -----------------------------------------------------------------
+    // Sets a target 24 hours from current dynamic date for display purposes
+    const targetDate = new Date(Date.now() + (24 * 60 * 60 * 1000));
+
+    function updateTimer() {
+      const now = new Date();
+      const diff = targetDate - now;
+
+      if (diff > 0) {
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+
+        document.getElementById('days').innerText = String(d).padStart(2, '0');
+        document.getElementById('hours').innerText = String(h).padStart(2, '0');
+        document.getElementById('minutes').innerText = String(m).padStart(2, '0');
+        document.getElementById('seconds').innerText = String(s).padStart(2, '0');
+      }
+    }
+    setInterval(updateTimer, 1000);
+    updateTimer();
+
+    // -----------------------------------------------------------------
+    // Canvas Background Particle System
+    // -----------------------------------------------------------------
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    class Particle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 2 + 0.5;
+        this.speedY = Math.random() * 0.5 + 0.1;
+        this.opacity = Math.random() * 0.5 + 0.2;
+      }
+
+      update() {
+        this.y -= this.speedY;
+        if (this.y < 0) {
+          this.y = height;
+          this.x = Math.random() * width;
+        }
+      }
+
+      draw() {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    const particles = Array.from({ length: 40 }, () => new Particle());
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+  </script>
+</body>
+</html>
